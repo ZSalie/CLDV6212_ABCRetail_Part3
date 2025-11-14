@@ -6,7 +6,7 @@ namespace ABC_Retailers_Part3.Models
     {
         [Required(ErrorMessage = "Please select a file")]
         [Display(Name = "Proof of Payment")]
-        public IFormFile ProofOfPayment { get; set; }
+        public IFormFile ProofOfPayment { get; set; } = null!; // Fixed: Initialize with null!
 
         [Display(Name = "Order ID (Optional)")]
         public string? OrderId { get; set; }

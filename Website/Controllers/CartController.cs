@@ -201,7 +201,7 @@ namespace ABC_Retailers_Part3.Controllers
                 var checkoutViewModel = new CheckoutViewModel
                 {
                     Cart = cart,
-                    CustomerName = User.FindFirstValue(ClaimTypes.Name) ?? "Customer",
+                    CustomerName = User.FindFirstValue(ClaimTypes.Name) ?? HttpContext.Session.GetString("Username") ?? "Customer",
                     CustomerEmail = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty
                 };
 
@@ -222,7 +222,7 @@ namespace ABC_Retailers_Part3.Controllers
             try
             {
                 var cart = await GetUserCartAsync();
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "unknown";
+                var username = User.Identity?.Name ?? HttpContext.Session.GetString("Username") ?? "unknown";
 
                 if (cart.IsEmpty)
                 {
@@ -233,9 +233,9 @@ namespace ABC_Retailers_Part3.Controllers
                 // Create orders for each cart item
                 foreach (var item in cart.Items)
                 {
-                    if (!string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(item.ProductId))
+                    if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(item.ProductId))
                     {
-                        await _functionService.CreateOrderAsync(userId, item.ProductId, item.Quantity);
+                        await _functionService.CreateOrderAsync(username, item.ProductId, item.Quantity);
                     }
                 }
 
@@ -283,7 +283,7 @@ namespace ABC_Retailers_Part3.Controllers
 
         private async Task<CartViewModel> GetUserCartAsync()
         {
-            var username = User.Identity?.Name ?? "Guest";
+            var username = User.Identity?.Name ?? HttpContext.Session.GetString("Username") ?? "Guest";
             var cartJson = HttpContext.Session.GetString($"ShoppingCart_{username}");
 
             if (string.IsNullOrEmpty(cartJson))
@@ -291,13 +291,21 @@ namespace ABC_Retailers_Part3.Controllers
                 return new CartViewModel();
             }
 
-            var cart = JsonSerializer.Deserialize<CartViewModel>(cartJson);
-            return cart ?? new CartViewModel();
+            try
+            {
+                var cart = JsonSerializer.Deserialize<CartViewModel>(cartJson);
+                return cart ?? new CartViewModel();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deserializing cart");
+                return new CartViewModel();
+            }
         }
 
         private async Task SaveCartToSessionAsync(CartViewModel cart)
         {
-            var username = User.Identity?.Name ?? "Guest";
+            var username = User.Identity?.Name ?? HttpContext.Session.GetString("Username") ?? "Guest";
             var cartJson = JsonSerializer.Serialize(cart);
             HttpContext.Session.SetString($"ShoppingCart_{username}", cartJson);
         }

@@ -8,11 +8,16 @@ namespace ABC_Retailers_Part3.Controllers
     public class ProductController : Controller
     {
         private readonly IAzureFunctionService _functionService;
+        private readonly IAzureStorageService _storageService;
         private readonly ILogger<ProductController> _logger;
 
-        public ProductController(IAzureFunctionService functionService, ILogger<ProductController> logger)
+        public ProductController(
+            IAzureFunctionService functionService,
+            IAzureStorageService storageService,
+            ILogger<ProductController> logger)
         {
             _functionService = functionService;
+            _storageService = storageService;
             _logger = logger;
         }
 
@@ -42,27 +47,6 @@ namespace ABC_Retailers_Part3.Controllers
         {
             try
             {
-                // Parse price as decimal instead of double
-                if (Request.Form.TryGetValue("Price", out var priceFormValue))
-                {
-                    _logger.LogInformation("Raw price from form: '{PriceFormValue}'", priceFormValue.ToString());
-                    if (decimal.TryParse(priceFormValue, out var parsedPrice))
-                    {
-                        product.Price = parsedPrice;
-                        _logger.LogInformation("Successfully parsed price: {Price}", parsedPrice);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Failed to parse price: {PriceFormValue}", priceFormValue.ToString());
-                        ModelState.AddModelError("Price", "Please enter a valid price.");
-                    }
-                }
-
-                // Set CreatedAt to current UTC time
-                product.CreatedAt = DateTime.UtcNow;
-
-                _logger.LogInformation("Final product price: {Price}", product.Price);
-
                 if (ModelState.IsValid)
                 {
                     if (product.Price <= 0)
@@ -71,8 +55,34 @@ namespace ABC_Retailers_Part3.Controllers
                         return View(product);
                     }
 
-                    var createdProduct = await _functionService.CreateProductAsync(product, imageFile);
-                    TempData["Success"] = $"{createdProduct.ProductName} created successfully with price {createdProduct.Price:C}!";
+                    // Generate ProductId if empty
+                    if (string.IsNullOrEmpty(product.ProductId))
+                    {
+                        product.ProductId = Guid.NewGuid().ToString();
+                    }
+
+                    // Handle image upload to Azure Storage
+                    if (imageFile != null && imageFile.Length > 0)
+                    {
+                        try
+                        {
+                            var imageUrl = await _storageService.UploadProductImageAsync(imageFile, product.ProductId);
+                            product.ImageUrl = imageUrl;
+                            _logger.LogInformation("Image uploaded successfully: {ImageUrl}", imageUrl);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to upload image");
+                            ModelState.AddModelError("", "Failed to upload product image. Please try again.");
+                            return View(product);
+                        }
+                    }
+
+                    product.CreatedAt = DateTime.UtcNow;
+
+                    // Create product via Azure Function
+                    var createdProduct = await _functionService.CreateProductAsync(product, null);
+                    TempData["Success"] = $"{createdProduct.ProductName} created successfully!";
                     return RedirectToAction(nameof(Index));
                 }
             }
@@ -121,23 +131,32 @@ namespace ABC_Retailers_Part3.Controllers
                     return NotFound();
                 }
 
-                // Parse price as decimal instead of double
-                if (Request.Form.TryGetValue("Price", out var priceFormValue))
-                {
-                    if (decimal.TryParse(priceFormValue, out var parsedPrice))
-                    {
-                        product.Price = parsedPrice;
-                        _logger.LogInformation("Edit: Successfully parsed price: {Price}", parsedPrice);
-                    }
-                    else
-                    {
-                        ModelState.AddModelError("Price", "Please enter a valid price.");
-                    }
-                }
-
                 if (ModelState.IsValid)
                 {
-                    var updatedProduct = await _functionService.UpdateProductAsync(id, product, imageFile);
+                    // Handle new image upload
+                    if (imageFile != null && imageFile.Length > 0)
+                    {
+                        try
+                        {
+                            // Delete old image if exists
+                            if (!string.IsNullOrEmpty(product.ImageUrl))
+                            {
+                                await _storageService.DeleteProductImageAsync(product.ImageUrl);
+                            }
+
+                            // Upload new image
+                            var imageUrl = await _storageService.UploadProductImageAsync(imageFile, product.ProductId);
+                            product.ImageUrl = imageUrl;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to upload image");
+                            ModelState.AddModelError("", "Failed to upload product image. Please try again.");
+                            return View(product);
+                        }
+                    }
+
+                    var updatedProduct = await _functionService.UpdateProductAsync(id, product, null);
                     TempData["Success"] = "Product updated successfully!";
                     return RedirectToAction(nameof(Index));
                 }
@@ -161,6 +180,13 @@ namespace ABC_Retailers_Part3.Controllers
                 {
                     TempData["Error"] = "Invalid product ID.";
                     return RedirectToAction(nameof(Index));
+                }
+
+                // Get product first to delete associated image
+                var product = await _functionService.GetProductAsync(id);
+                if (product != null && !string.IsNullOrEmpty(product.ImageUrl))
+                {
+                    await _storageService.DeleteProductImageAsync(product.ImageUrl);
                 }
 
                 await _functionService.DeleteProductAsync(id);

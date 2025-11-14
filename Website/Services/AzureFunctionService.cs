@@ -20,13 +20,17 @@ namespace ABC_Retailers_Part3.Services
         private const string OrdersRoute = "orders";
         private const string UploadRoute = "uploads/proof-of-payment";
 
-        public AzureFunctionService(IHttpClientFactory factory, ILogger<AzureFunctionService> logger, IConfiguration config)
+        public AzureFunctionService(HttpClient http, ILogger<AzureFunctionService> logger)
         {
-            _http = factory.CreateClient("functions");
+            _http = http;
             _logger = logger;
 
-            // Add the default functions key to headers for authentication
-            _http.DefaultRequestHeaders.Add("x-functions-key", "");
+            // Validate BaseAddress
+            if (_http.BaseAddress == null)
+            {
+                _logger.LogError("HttpClient BaseAddress is not set!");
+                throw new InvalidOperationException("HttpClient BaseAddress must be configured");
+            }
 
             _logger.LogInformation("AzureFunctionService initialized with base URL: {BaseUrl}", _http.BaseAddress);
         }
@@ -56,6 +60,13 @@ namespace ABC_Retailers_Part3.Services
                 try
                 {
                     var response = await operation();
+
+                    // Log the actual URL being called for debugging
+                    if (i == 0) // Only log on first attempt to avoid spam
+                    {
+                        _logger.LogInformation("Making request to: {RequestUrl}", response.RequestMessage?.RequestUri);
+                    }
+
                     if (response.IsSuccessStatusCode || i == maxRetries)
                         return response;
 
@@ -78,7 +89,7 @@ namespace ABC_Retailers_Part3.Services
         {
             try
             {
-                _logger.LogInformation("Getting customers list");
+                _logger.LogInformation("Getting customers list from: {BaseUrl}/{Route}", _http.BaseAddress, CustomersRoute);
                 var response = await ExecuteWithRetryAsync(() => _http.GetAsync(CustomersRoute));
                 return await ReadJsonAsync<List<Customer>>(response);
             }
@@ -173,7 +184,7 @@ namespace ABC_Retailers_Part3.Services
         {
             try
             {
-                _logger.LogInformation("Getting products list");
+                _logger.LogInformation("Getting products list from: {BaseUrl}/{Route}", _http.BaseAddress, ProductsRoute);
                 var response = await ExecuteWithRetryAsync(() => _http.GetAsync(ProductsRoute));
                 return await ReadJsonAsync<List<Product>>(response);
             }
@@ -205,16 +216,24 @@ namespace ABC_Retailers_Part3.Services
             try
             {
                 _logger.LogInformation("Creating product: {ProductName}", p.ProductName);
+                _logger.LogInformation("Using base address: {BaseAddress}", _http.BaseAddress);
+
+                // First, let's test if the products endpoint exists
+                var testResponse = await _http.GetAsync(ProductsRoute);
+                _logger.LogInformation("Products endpoint test returned: {StatusCode}", testResponse.StatusCode);
 
                 using var form = new MultipartFormDataContent();
-                form.Add(new StringContent(p.ProductName), "ProductName");
-                form.Add(new StringContent(p.Description ?? string.Empty), "Description");
+
+                // Add basic product fields
+                form.Add(new StringContent(p.ProductName ?? ""), "ProductName");
+                form.Add(new StringContent(p.Description ?? ""), "Description");
                 form.Add(new StringContent(p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)), "Price");
-                form.Add(new StringContent(p.Category ?? string.Empty), "Category");
+                form.Add(new StringContent(p.Category ?? ""), "Category");
 
                 if (!string.IsNullOrWhiteSpace(p.ImageUrl))
                     form.Add(new StringContent(p.ImageUrl), "ImageUrl");
 
+                // Handle image file upload
                 if (imageFile is not null && imageFile.Length > 0)
                 {
                     _logger.LogInformation("Including image file: {FileName} ({FileSize} bytes)",
@@ -223,14 +242,28 @@ namespace ABC_Retailers_Part3.Services
                     file.Headers.ContentType = new MediaTypeHeaderValue(imageFile.ContentType ?? "application/octet-stream");
                     form.Add(file, "ImageFile", imageFile.FileName);
                 }
+                else if (!string.IsNullOrWhiteSpace(p.ImageUrl))
+                {
+                    _logger.LogInformation("Using Image URL: {ImageUrl}", p.ImageUrl);
+                }
 
+                // Make the request
                 var response = await ExecuteWithRetryAsync(() => _http.PostAsync(ProductsRoute, form));
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Failed to create product. Status: {StatusCode}, Error: {Error}",
+                        response.StatusCode, errorContent);
+                    throw new HttpRequestException($"Failed to create product: {response.StatusCode} - {errorContent}");
+                }
+
                 return await ReadJsonAsync<Product>(response);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating product {ProductName}", p.ProductName);
-                throw;
+                throw new ApplicationException($"Failed to create product '{p.ProductName}'. Please check if the Azure Function endpoint exists and is accessible.", ex);
             }
         }
 
@@ -407,7 +440,11 @@ namespace ABC_Retailers_Part3.Services
                 response.EnsureSuccessStatusCode();
 
                 var doc = await ReadJsonAsync<Dictionary<string, string>>(response);
-                return doc.TryGetValue("fileName", out var name) ? name : file.FileName;
+                if (doc != null && doc.TryGetValue("fileName", out var name) && !string.IsNullOrEmpty(name))
+                {
+                    return name;
+                }
+                return file.FileName;
             }
             catch (Exception ex)
             {
@@ -421,19 +458,37 @@ namespace ABC_Retailers_Part3.Services
         {
             try
             {
-                _logger.LogInformation("Testing connection to Azure Functions");
-                var response = await _http.GetAsync("products");
+                _logger.LogInformation("Testing connection to Azure Functions at: {BaseUrl}", _http.BaseAddress);
 
-                if (response.IsSuccessStatusCode)
+                // Test multiple endpoints to see which ones work
+                var endpoints = new[] { "products", "customers", "orders" };
+                var results = new List<string>();
+
+                foreach (var endpoint in endpoints)
                 {
-                    _logger.LogInformation("Connection test successful: {StatusCode}", response.StatusCode);
-                    return (true, $"Success! Connected to Azure Functions. Status: {response.StatusCode}");
+                    try
+                    {
+                        var response = await _http.GetAsync(endpoint);
+                        results.Add($"{endpoint}: {response.StatusCode}");
+                        _logger.LogInformation("Endpoint {Endpoint} returned: {StatusCode}", endpoint, response.StatusCode);
+                    }
+                    catch (Exception ex)
+                    {
+                        results.Add($"{endpoint}: ERROR - {ex.Message}");
+                        _logger.LogWarning(ex, "Endpoint {Endpoint} test failed", endpoint);
+                    }
+                }
+
+                var message = $"Connection test results: {string.Join("; ", results)}";
+
+                // If at least one endpoint returns success, consider it a partial success
+                if (results.Any(r => r.Contains("200")))
+                {
+                    return (true, message);
                 }
                 else
                 {
-                    _logger.LogWarning("Connection test returned: {StatusCode}", response.StatusCode);
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    return (false, $"Connection test failed. Status: {response.StatusCode}, Error: {errorContent}");
+                    return (false, message);
                 }
             }
             catch (Exception ex)
@@ -448,6 +503,11 @@ namespace ABC_Retailers_Part3.Services
     public static class HttpClientExtensions
     {
         public static Task<HttpResponseMessage> PatchAsync(this HttpClient client, string requestUrl, HttpContent content)
-            => client.SendAsync(new HttpRequestMessage(HttpMethod.Patch, requestUrl) { Content = content });
+        {
+            if (client == null) throw new ArgumentNullException(nameof(client));
+            if (requestUrl == null) throw new ArgumentNullException(nameof(requestUrl));
+
+            return client.SendAsync(new HttpRequestMessage(HttpMethod.Patch, requestUrl) { Content = content });
+        }
     }
 }

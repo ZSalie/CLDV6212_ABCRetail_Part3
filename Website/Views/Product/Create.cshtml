@@ -1,4 +1,5 @@
 ﻿@model ABC_Retailers_Part3.Models.Product
+
 @{
     ViewData["Title"] = "Create Product";
 }
@@ -7,13 +8,29 @@
 
 <div class="row">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
                 <h5 class="card-title mb-0">
                     <i class="fas fa-tag"></i> Product Information
                 </h5>
             </div>
+
             <div class="card-body">
+
+                @* Display server-side validation errors *@
+                @if (ViewData.ModelState.ErrorCount > 0)
+                {
+                    <div class="alert alert-danger">
+                        <h5><i class="fas fa-exclamation-circle"></i> Please fix the following:</h5>
+                        <ul>
+                            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                            {
+                                <li>@error.ErrorMessage</li>
+                            }
+                        </ul>
+                    </div>
+                }
+
                 <form asp-action="Create" method="post" enctype="multipart/form-data">
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
@@ -25,7 +42,7 @@
 
                     <div class="form-group mb-3">
                         <label asp-for="Description" class="form-label">Description</label>
-                        <textarea asp-for="Description" class="form-control" rows="3" placeholder="Enter product description"></textarea>
+                        <textarea asp-for="Description" rows="3" class="form-control" placeholder="Enter product description"></textarea>
                         <span asp-validation-for="Description" class="text-danger"></span>
                     </div>
 
@@ -35,11 +52,12 @@
                                 <label asp-for="Price" class="form-label">Price *</label>
                                 <div class="input-group">
                                     <span class="input-group-text">R</span>
-                                    <input asp-for="Price" class="form-control" placeholder="0.00" step="0.01" min="0.01" required />
+                                    <input asp-for="Price" class="form-control" placeholder="0.00" type="number" step="0.01" min="0.01" required />
                                 </div>
                                 <span asp-validation-for="Price" class="text-danger"></span>
                             </div>
                         </div>
+
                         <div class="col-md-6">
                             <div class="form-group mb-3">
                                 <label asp-for="Category" class="form-label">Category</label>
@@ -53,13 +71,13 @@
                         <label asp-for="ImageUrl" class="form-label">Image URL</label>
                         <input asp-for="ImageUrl" class="form-control" placeholder="Enter image URL (optional)" />
                         <span asp-validation-for="ImageUrl" class="text-danger"></span>
-                        <div class="form-text">Provide a direct image URL or upload an image file below</div>
+                        <small class="form-text text-muted">Provide a direct image URL or upload a file below.</small>
                     </div>
 
                     <div class="form-group mb-3">
                         <label class="form-label">Upload Image File</label>
                         <input type="file" name="imageFile" class="form-control" accept="image/*" />
-                        <div class="form-text">Supported formats: JPG, PNG, GIF, WEBP (optional)</div>
+                        <small class="form-text text-muted">Supported: JPG, PNG, GIF, WEBP (optional)</small>
                     </div>
 
                     <div class="form-group">
@@ -71,39 +89,43 @@
                         </a>
                     </div>
                 </form>
+
             </div>
         </div>
     </div>
 
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
                 <h5 class="card-title mb-0">
                     <i class="fas fa-lightbulb"></i> Tips & Guidelines
                 </h5>
             </div>
             <div class="card-body">
+
                 <div class="alert alert-info">
-                    <h6><i class="fas fa-info-circle"></i> Product Images:</h6>
-                    <p class="mb-2">You can either:</p>
-                    <ul class="mb-0">
-                        <li>Provide an image URL, or</li>
-                        <li>Upload an image file</li>
+                    <h6><i class="fas fa-image"></i> Product Images</h6>
+                    <ul>
+                        <li>Use an image URL</li>
+                        <li>Or upload an image file</li>
                     </ul>
                 </div>
+
                 <div class="alert alert-success">
-                    <h6><i class="fas fa-check-circle"></i> Best Practices:</h6>
-                    <ul class="mb-0">
-                        <li>Use clear, descriptive product names</li>
+                    <h6><i class="fas fa-check-circle"></i> Best Practices</h6>
+                    <ul>
+                        <li>Use clear product names</li>
                         <li>Set realistic prices</li>
-                        <li>Add relevant categories for filtering</li>
-                        <li>Use high-quality images</li>
+                        <li>Include categories</li>
+                        <li>Upload high-quality images</li>
                     </ul>
                 </div>
+
                 <div class="alert alert-warning">
-                    <h6><i class="fas fa-exclamation-triangle"></i> Required Fields:</h6>
-                    <p class="mb-0">Product Name and Price are required fields.</p>
+                    <h6><i class="fas fa-exclamation-triangle"></i> Required Fields</h6>
+                    <p>Product Name and Price are mandatory.</p>
                 </div>
+
             </div>
         </div>
     </div>
@@ -115,11 +137,12 @@
     }
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
+
             const priceInput = document.querySelector('input[name="Price"]');
 
-            // Format price input
-            priceInput?.addEventListener('blur', function() {
+            // Format price input on blur
+            priceInput?.addEventListener('blur', function () {
                 let value = parseFloat(this.value);
                 if (!isNaN(value) && value >= 0) {
                     this.value = value.toFixed(2);
@@ -127,8 +150,7 @@
             });
 
             // Client-side validation
-            const form = document.querySelector('form');
-            form?.addEventListener('submit', function(e) {
+            document.querySelector('form').addEventListener('submit', function (e) {
                 const productName = document.querySelector('input[name="ProductName"]').value.trim();
                 const price = parseFloat(document.querySelector('input[name="Price"]').value);
 
@@ -140,12 +162,13 @@
 
                 if (!price || price <= 0) {
                     e.preventDefault();
-                    alert('Please enter a valid price greater than R 0.00.');
+                    alert('Please enter a price greater than R 0.00.');
                     return false;
                 }
 
                 return true;
             });
+
         });
     </script>
 }

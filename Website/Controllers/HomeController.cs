@@ -78,7 +78,8 @@ namespace ABC_Retailers_Part3.Controllers
 
         public IActionResult AdminDashboard()
         {
-            if (HttpContext.Session.GetString("Role") != "Admin")
+            var role = HttpContext.Session.GetString("Role");
+            if (role != "Admin")
             {
                 TempData["Error"] = "Access denied. Admin privileges required.";
                 return RedirectToAction("AccessDenied", "Login");
@@ -88,7 +89,8 @@ namespace ABC_Retailers_Part3.Controllers
 
         public IActionResult CustomerDashboard()
         {
-            if (string.IsNullOrEmpty(HttpContext.Session.GetString("UserId")))
+            var userId = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userId))
             {
                 TempData["Error"] = "Please login to access dashboard.";
                 return RedirectToAction("Login", "Login");

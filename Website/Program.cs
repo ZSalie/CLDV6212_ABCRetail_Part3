@@ -13,19 +13,51 @@ namespace ABC_Retailers_Part3
             // Add services to the container.
             builder.Services.AddControllersWithViews();
 
-            // Add HttpClient for Azure Functions
-            builder.Services.AddHttpClient("functions", client =>
+            // Get Azure Functions configuration
+            var azureFunctionBaseUrl = builder.Configuration["AzureFunctions:BaseUrl"];
+            var azureFunctionKey = builder.Configuration["AzureFunctions:DefaultKey"];
+
+            // Validate and set default if configuration is missing
+            if (string.IsNullOrEmpty(azureFunctionBaseUrl))
             {
-                client.BaseAddress = new Uri(builder.Configuration["AzureFunctions:BaseUrl"] ?? "https://abcreta-dreffpadg7ctgwbj.canadacentral-01.azurewebsites.net/api/");
-                client.DefaultRequestHeaders.Add("x-functions-key", builder.Configuration["AzureFunctions:DefaultKey"] ?? "xxx");
+                azureFunctionBaseUrl = "https://your-function-app.azure.net/api/";
+                Console.WriteLine("Warning: Using default Azure Function Base URL");
+            }
+
+            if (string.IsNullOrEmpty(azureFunctionKey))
+            {
+                azureFunctionKey = "default-key";
+                Console.WriteLine("Warning: Using default Azure Function Key");
+            }
+
+            Console.WriteLine($"Azure Function Base URL: {azureFunctionBaseUrl}");
+            Console.WriteLine($"Azure Function Key configured: {!string.IsNullOrEmpty(azureFunctionKey)}");
+
+            // Register AzureFunctionService with proper HttpClient configuration
+            builder.Services.AddHttpClient<IAzureFunctionService, AzureFunctionService>(client =>
+            {
+                client.BaseAddress = new Uri(azureFunctionBaseUrl);
+                if (!string.IsNullOrEmpty(azureFunctionKey) && azureFunctionKey != "default-key")
+                {
+                    client.DefaultRequestHeaders.Add("x-functions-key", azureFunctionKey);
+                }
+                client.Timeout = TimeSpan.FromSeconds(30);
             });
 
-            // Add Entity Framework for SQL Database
-            builder.Services.AddDbContext<AuthDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("AuthDbConnection")));
+            // Add Azure Storage Service
+            builder.Services.AddScoped<IAzureStorageService, AzureStorageService>();
 
-            // Register services - ONLY Azure Functions service
-            builder.Services.AddScoped<IAzureFunctionService, AzureFunctionService>();
+            // Add Entity Framework for SQL Database
+            var connectionString = builder.Configuration.GetConnectionString("AuthDbConnection");
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                Console.WriteLine("Warning: AuthDbConnection string is not configured");
+            }
+            else
+            {
+                builder.Services.AddDbContext<AuthDbContext>(options =>
+                    options.UseSqlServer(connectionString));
+            }
 
             // Add session support for shopping cart
             builder.Services.AddDistributedMemoryCache();

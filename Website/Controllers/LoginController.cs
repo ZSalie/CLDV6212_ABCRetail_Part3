@@ -44,9 +44,14 @@ namespace ABC_Retailers_Part3.Controllers
 
                     TempData["Success"] = $"Welcome back, {user.Username}!";
 
-                    return user.Role == "Admin"
-                        ? RedirectToAction("AdminDashboard", "Home")
-                        : RedirectToAction("CustomerDashboard", "Home");
+                    if (user.Role == "Admin")
+                    {
+                        return RedirectToAction("AdminDashboard", "Home");
+                    }
+                    else
+                    {
+                        return RedirectToAction("CustomerDashboard", "Home");
+                    }
                 }
 
                 ModelState.AddModelError("", "Invalid login attempt.");
