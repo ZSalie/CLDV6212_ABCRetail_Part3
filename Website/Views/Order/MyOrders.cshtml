@@ -1,0 +1,58 @@
+﻿@model IEnumerable<Order>
+@{
+    ViewData["Title"] = "My Orders";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-history"></i> My Orders</h2>
+    <a asp-controller="Product" asp-action="Index" class="btn btn-primary">
+        <i class="fas fa-shopping-bag"></i> Continue Shopping
+    </a>
+</div>
+
+@if (Model.Any())
+{
+    <div class="row">
+        @foreach (var order in Model)
+        {
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Order #@order.Id.Substring(0, 8)</h5>
+                        <span class="badge
+                                    @(order.Status == OrderStatus.Completed ? "bg-success" :
+                                                            order.Status == OrderStatus.Processing ? "bg-warning" :
+                                                            order.Status == OrderStatus.Cancelled ? "bg-danger" : "bg-secondary")">
+                    @order.Status
+                </span>
+            </div>
+            <div class="card-body">
+                <p><strong>Product:</strong> @order.ProductName</p>
+                <p><strong>Quantity:</strong> @order.Quantity</p>
+                <p><strong>Unit Price:</strong> R @order.UnitPrice.ToString("F2")</p>
+                <p><strong>Total Price:</strong> R @order.TotalPrice.ToString("F2")</p>
+                <p><strong>Order Date:</strong> @order.OrderDateUtc.ToString("MMM dd, yyyy")</p>
+            </div>
+            <div class="card-footer">
+                <a asp-action="Details" asp-route-id="@order.Id" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-eye"></i> View Details
+                </a>
+            </div>
+        </div>
+    </div>
+        }
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+            <h3>No Orders Yet</h3>
+            <p class="text-muted">You haven't placed any orders yet. Start shopping to see your orders here!</p>
+            <a asp-controller="Product" asp-action="Index" class="btn btn-primary">
+                <i class="fas fa-shopping-bag"></i> Start Shopping
+            </a>
+        </div>
+    </div>
+}

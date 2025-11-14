@@ -1,0 +1,205 @@
+﻿@using ABC_Retailers_Part3.Models.ViewModels
+@model CheckoutViewModel
+@{
+    ViewData["Title"] = "Checkout";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Cart" asp-action="Index">Cart</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Checkout</li>
+                </ol>
+            </nav>
+
+            <h2><i class="fas fa-shopping-cart"></i> Checkout</h2>
+            <p class="lead text-muted">Review your order and complete your purchase</p>
+        </div>
+    </div>
+
+    @if (!Model.Cart.Items.Any())
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-warning">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Your cart is empty</h4>
+                    <p>There are no items in your cart to checkout.</p>
+                    <a asp-controller="Cart" asp-action="Index" class="btn btn-primary">Return to Cart</a>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <!-- Order Items -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-list-alt"></i> Order Summary
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var item in Model.Cart.Items)
+                        {
+                            <div class="row align-items-center mb-3 pb-3 border-bottom">
+                                <div class="col-2">
+                                    @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                    {
+                                        <img src="@item.ImageUrl" class="img-fluid rounded" alt="@item.ProductName"
+                                             style="height: 80px; width: 80px; object-fit: cover;">
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-light rounded d-flex align-items-center justify-content-center"
+                                             style="height: 80px; width: 80px;">
+                                            <i class="fas fa-image text-muted fa-2x"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="col-6">
+                                    <h6 class="mb-1">@item.ProductName</h6>
+                                    <small class="text-muted">@item.Category</small>
+                                    <div class="mt-2">
+                                        <span class="badge bg-secondary">Qty: @item.Quantity</span>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <div class="mb-1">
+                                        <small class="text-muted">R @item.Price.ToString("F2") each</small>
+                                    </div>
+                                    <strong class="text-success">R @item.TotalPrice.ToString("F2")</strong>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Customer Information Form -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-user"></i> Customer Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="PlaceOrder" method="post" id="checkoutForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="CustomerName" class="form-label">Full Name *</label>
+                                        <input type="text" class="form-control" id="CustomerName" name="CustomerName"
+                                               value="@Model.CustomerName" required placeholder="Enter your full name">
+                                        <div class="invalid-feedback">Please provide your full name.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="CustomerEmail" class="form-label">Email Address *</label>
+                                        <input type="email" class="form-control" id="CustomerEmail" name="CustomerEmail"
+                                               value="@Model.CustomerEmail" required placeholder="your@email.com">
+                                        <div class="invalid-feedback">Please provide a valid email address.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="CustomerPhone" class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" id="CustomerPhone" name="CustomerPhone"
+                                               value="@Model.CustomerPhone" placeholder="+27 12 345 6789">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="PaymentMethod" class="form-label">Payment Method *</label>
+                                        <select class="form-control" id="PaymentMethod" name="PaymentMethod" required>
+                                            <option value="">Select payment method</option>
+                                            <option value="Credit Card" selected>Credit Card</option>
+                                            <option value="Debit Card">Debit Card</option>
+                                            <option value="PayPal">PayPal</option>
+                                            <option value="Bank Transfer">Bank Transfer</option>
+                                            <option value="Cash on Delivery">Cash on Delivery</option>
+                                        </select>
+                                        <div class="invalid-feedback">Please select a payment method.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="ShippingAddress" class="form-label">Shipping Address *</label>
+                                <textarea class="form-control" id="ShippingAddress" name="ShippingAddress"
+                                      rows="3" required placeholder="Enter your complete shipping address">@Model.ShippingAddress</textarea>
+                                <div class="invalid-feedback">Please provide your shipping address.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="SpecialInstructions" class="form-label">Special Instructions</label>
+                                <textarea class="form-control" id="SpecialInstructions" name="SpecialInstructions"
+                                      rows="2" placeholder="Any special delivery instructions, notes, or requests...">@Model.SpecialInstructions</textarea>
+                                <div class="form-text">Optional: Add any special instructions for delivery.</div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Total & Actions -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-receipt"></i> Order Total
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal (@Model.Cart.TotalItems items):</span>
+                            <span>R @Model.Cart.GrandTotal.ToString("F2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Shipping:</span>
+                            <span class="text-success">FREE</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Tax (15%):</span>
+                            <span>R @((Model.Cart.GrandTotal * 0.15m).ToString("F2"))</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-4">
+                            <strong class="h5">Total:</strong>
+                            <strong class="h5 text-success">R @((Model.Cart.GrandTotal * 1.15m).ToString("F2"))</strong>
+                        </div>
+
+                        <button type="submit" form="checkoutForm" class="btn btn-success btn-lg w-100 mb-3">
+                            <i class="fas fa-lock"></i> Place Secure Order
+                        </button>
+
+                        <div class="text-center">
+                            <small class="text-muted">
+                                <i class="fas fa-shield-alt"></i> Your payment information is secure and encrypted
+                            </small>
+                        </div>
+
+                        <hr>
+
+                        <a asp-controller="Cart" asp-action="Index" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-arrow-left"></i> Back to Cart
+                        </a>
+
+                        <div class="mt-3">
+                            <div class="alert alert-info small">
+                                <h6><i class="fas fa-info-circle"></i> Need Help?</h6>
+                                <p class="mb-0">Contact our support team at <strong>support@abcretailers.com</strong> or call <strong>+27 11 123 4567</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

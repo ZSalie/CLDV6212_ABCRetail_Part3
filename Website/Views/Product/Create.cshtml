@@ -1,0 +1,151 @@
+﻿@model ABC_Retailers_Part3.Models.Product
+@{
+    ViewData["Title"] = "Create Product";
+}
+
+<h2><i class="fas fa-plus-circle"></i> Create Product</h2>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tag"></i> Product Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="ProductName" class="form-label">Product Name *</label>
+                        <input asp-for="ProductName" class="form-control" placeholder="Enter product name" required />
+                        <span asp-validation-for="ProductName" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Description" class="form-label">Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="3" placeholder="Enter product description"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Price" class="form-label">Price *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R</span>
+                                    <input asp-for="Price" class="form-control" placeholder="0.00" step="0.01" min="0.01" required />
+                                </div>
+                                <span asp-validation-for="Price" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Category" class="form-label">Category</label>
+                                <input asp-for="Category" class="form-control" placeholder="e.g., Electronics, Clothing, Food" />
+                                <span asp-validation-for="Category" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="ImageUrl" class="form-label">Image URL</label>
+                        <input asp-for="ImageUrl" class="form-control" placeholder="Enter image URL (optional)" />
+                        <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                        <div class="form-text">Provide a direct image URL or upload an image file below</div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">Upload Image File</label>
+                        <input type="file" name="imageFile" class="form-control" accept="image/*" />
+                        <div class="form-text">Supported formats: JPG, PNG, GIF, WEBP (optional)</div>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i> Create Product
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> Tips & Guidelines
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> Product Images:</h6>
+                    <p class="mb-2">You can either:</p>
+                    <ul class="mb-0">
+                        <li>Provide an image URL, or</li>
+                        <li>Upload an image file</li>
+                    </ul>
+                </div>
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-check-circle"></i> Best Practices:</h6>
+                    <ul class="mb-0">
+                        <li>Use clear, descriptive product names</li>
+                        <li>Set realistic prices</li>
+                        <li>Add relevant categories for filtering</li>
+                        <li>Use high-quality images</li>
+                    </ul>
+                </div>
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Required Fields:</h6>
+                    <p class="mb-0">Product Name and Price are required fields.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const priceInput = document.querySelector('input[name="Price"]');
+
+            // Format price input
+            priceInput?.addEventListener('blur', function() {
+                let value = parseFloat(this.value);
+                if (!isNaN(value) && value >= 0) {
+                    this.value = value.toFixed(2);
+                }
+            });
+
+            // Client-side validation
+            const form = document.querySelector('form');
+            form?.addEventListener('submit', function(e) {
+                const productName = document.querySelector('input[name="ProductName"]').value.trim();
+                const price = parseFloat(document.querySelector('input[name="Price"]').value);
+
+                if (!productName) {
+                    e.preventDefault();
+                    alert('Please enter a product name.');
+                    return false;
+                }
+
+                if (!price || price <= 0) {
+                    e.preventDefault();
+                    alert('Please enter a valid price greater than R 0.00.');
+                    return false;
+                }
+
+                return true;
+            });
+        });
+    </script>
+}

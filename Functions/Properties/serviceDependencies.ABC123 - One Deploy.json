@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "appInsights1": {
+      "secretStore": "AzureAppSettings",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/microsoft.insights/components/ABC123",
+      "type": "appInsights.azure",
+      "connectionId": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+      "dynamicId": null
+    },
+    "storage1": {
+      "serviceConnectorResourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('serviceConnectorResourceGroupName')]/providers/Microsoft.Web/sites/ABC123/providers/Microsoft.ServiceLinker/linkers/StorageConnection_4B76808C95, /subscriptions/0da7ba8d-b042-4e07-ab0a-563510ae5ce5/resourceGroups/cloud/providers/Microsoft.Web/sites/ABC123/providers/Microsoft.ServiceLinker/linkers/StorageConnection_6949D89D74",
+      "secretStore": "AzureAppSettings",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.Storage/storageAccounts/abcretail123",
+      "type": "storage.azure",
+      "connectionId": "StorageConnection"
+    }
+  }
+}

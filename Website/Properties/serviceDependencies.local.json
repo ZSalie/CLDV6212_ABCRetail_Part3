@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "compute1": {
+      "group": "connections",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.Web/sites/ABC123",
+      "type": "compute.function"
+    },
+    "compute2": {
+      "group": "connections",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.Web/sites/ABC123",
+      "type": "compute.function"
+    }
+  }
+}

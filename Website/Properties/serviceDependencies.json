@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "compute1": {
+      "group": "connections",
+      "type": "compute"
+    },
+    "storage1": {
+      "type": "storage",
+      "connectionId": "StorageConnection"
+    },
+    "compute2": {
+      "group": "connections",
+      "type": "compute"
+    }
+  }
+}

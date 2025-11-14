@@ -1,0 +1,134 @@
+﻿@model Order
+@{
+    ViewData["Title"] = "Order Details";
+}
+
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-info-circle"></i> Order Details</h2>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Order Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Order ID:</strong><br><code>@Model.Id</code></p>
+                        <p><strong>Customer:</strong><br>@Model.Username</p>
+                        <p><strong>Customer ID:</strong><br><code>@Model.CustomerId</code></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Order Date:</strong><br>@Model.OrderDateUtc.ToString("MMMM dd, yyyy 'at' hh:mm tt")</p>
+                        <p>
+                            <strong>Status:</strong><br>
+                            <span class="badge
+                                @(Model.Status == OrderStatus.Completed ? "bg-success" :
+                                                                    Model.Status == OrderStatus.Processing ? "bg-warning" :
+                                                                    Model.Status == OrderStatus.Cancelled ? "bg-danger" : "bg-secondary")">
+                                @Model.Status
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Product Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Product Name:</strong><br>@Model.ProductName</p>
+                        <p><strong>Product ID:</strong><br><code>@Model.ProductId</code></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Quantity:</strong><br>@Model.Quantity</p>
+                        <p><strong>Unit Price:</strong><br>R @Model.UnitPrice.ToString("F2")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Order Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Unit Price:</span>
+                    <span>R @Model.UnitPrice.ToString("F2")</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Quantity:</span>
+                    <span>@Model.Quantity</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between mb-3">
+                    <strong>Total Price:</strong>
+                    <strong>R @Model.TotalPrice.ToString("F2")</strong>
+                </div>
+
+                @if (Context.Session.GetString("Role") == "Admin")
+                {
+                    <div class="mt-3">
+                        <label class="form-label">Update Status:</label>
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-outline-success btn-sm"
+                                    onclick="updateStatus('@Model.Id', 'Completed')">
+                                Complete
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm"
+                                    onclick="updateStatus('@Model.Id', 'Processing')">
+                                Processing
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm"
+                                    onclick="updateStatus('@Model.Id', 'Cancelled')">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body text-center">
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary w-100 mb-2">
+                    <i class="fas fa-edit"></i> Edit Order
+                </a>
+                <a asp-action="Index" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-arrow-left"></i> Back to Orders
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateStatus(orderId, newStatus) {
+            if (confirm('Are you sure you want to update the order status to "' + newStatus + '"?')) {
+                $.post('@Url.Action("UpdateOrderStatus", "Order")', { id: orderId, newStatus: newStatus })
+                    .done(function(response) {
+                        if (response.success) {
+                            location.reload();
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    })
+                    .fail(function() {
+                        alert('Error updating order status');
+                    });
+            }
+        }
+    </script>
+}

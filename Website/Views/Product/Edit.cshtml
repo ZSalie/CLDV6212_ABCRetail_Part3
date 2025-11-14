@@ -1,0 +1,197 @@
+﻿@model ABC_Retailers_Part3.Models.Product
+@{
+    ViewData["Title"] = "Edit Product";
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-edit"></i> Edit Product</h2>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                    <input type="hidden" asp-for="ProductId" />
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Product ID:</strong> @Model.ProductId
+                    </div>
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="ProductName" class="form-label">Product Name *</label>
+                        <input asp-for="ProductName" class="form-control" required />
+                        <span asp-validation-for="ProductName" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Description" class="form-label">Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Price" class="form-label">Price *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R</span>
+                                    <input asp-for="Price" class="form-control" step="0.01" min="0.01" required />
+                                </div>
+                                <span asp-validation-for="Price" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Category" class="form-label">Category</label>
+                                <input asp-for="Category" class="form-control" placeholder="e.g., Electronics, Clothing, Food" />
+                                <span asp-validation-for="Category" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                    {
+                        <div class="form-group mb-3">
+                            <label class="form-label">Current Image</label>
+                            <div>
+                                <img src="@Model.ImageUrl" class="img-thumbnail" style="max-height: 200px; max-width: 200px; object-fit: cover;" alt="Current product image" />
+                                <div class="form-text">
+                                    <small>Current image URL: @Model.ImageUrl</small>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="form-group mb-3">
+                        <label asp-for="ImageUrl" class="form-label">Image URL</label>
+                        <input asp-for="ImageUrl" class="form-control" placeholder="Enter new image URL (optional)" />
+                        <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                        <div class="form-text">Leave empty to keep current image, or provide a new URL</div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">Upload New Image File</label>
+                        <input type="file" name="imageFile" class="form-control" accept="image/*" />
+                        <small class="form-text text-muted">Upload new product image (optional - will replace current image)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Product
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-info-circle"></i> Product Information</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    <strong>Product ID:</strong><br>
+                    <code>@Model.ProductId</code>
+                </p>
+                <p>
+                    <strong>Current Price:</strong><br>
+                    R @Model.Price.ToString("F2")
+                </p>
+                <p>
+                    <strong>Category:</strong><br>
+                    @(string.IsNullOrEmpty(Model.Category) ? "Not categorized" : Model.Category)
+                </p>
+                <p>
+                    <strong>Created:</strong><br>
+                    @Model.CreatedAt.ToString("yyyy-MM-dd")
+                </p>
+                <div class="alert alert-warning small">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Note:</strong> Price changes will affect all future orders.
+                </div>
+                <div class="alert alert-info small">
+                    <i class="fas fa-lightbulb"></i>
+                    <strong>Tip:</strong> Use clear categories to help customers find your products.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <style>
+        .stock-low {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .stock-medium {
+            color: #ffc107;
+            font-weight: bold;
+        }
+
+        .stock-high {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 10px 10px 0 0 !important;
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const priceInput = document.querySelector('input[name="Price"]');
+
+            // Format price input
+            priceInput?.addEventListener('blur', function() {
+                let value = parseFloat(this.value);
+                if (!isNaN(value) && value >= 0) {
+                    this.value = value.toFixed(2);
+                }
+            });
+
+            // Client-side validation
+            const form = document.querySelector('form');
+            form?.addEventListener('submit', function(e) {
+                const productName = document.querySelector('input[name="ProductName"]').value.trim();
+                const price = parseFloat(document.querySelector('input[name="Price"]').value);
+
+                if (!productName) {
+                    e.preventDefault();
+                    alert('Please enter a product name.');
+                    return false;
+                }
+
+                if (!price || price <= 0) {
+                    e.preventDefault();
+                    alert('Please enter a valid price greater than R 0.00.');
+                    return false;
+                }
+
+                return true;
+            });
+        });
+    </script>
+}

@@ -1,0 +1,178 @@
+﻿@model ABC_Retailers_Part3.Models.ViewModels.OrderCreateViewModel
+@{
+    ViewData["Title"] = "Create Order";
+}
+
+<h2><i class="fas fa-plus-circle"></i> Create Order</h2>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-invoice"></i> Order Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post" id="orderForm">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="CustomerId" class="form-label">Customer</label>
+                                <select asp-for="CustomerId" class="form-select" id="customerSelect">
+                                    <option value="">Select Customer</option>
+                                    @foreach (var customer in Model.Customers)
+                                    {
+                                        <option value="@customer.Id">@customer.Name @customer.Surname - @customer.Username</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="CustomerId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="ProductId" class="form-label">Product</label>
+                                <select asp-for="ProductId" class="form-select" id="productSelect">
+                                    <option value="">Select Product</option>
+                                    @foreach (var product in Model.Products)
+                                    {
+                                        <option value="@product.ProductId" data-price="@product.Price">
+                                            @product.ProductName (R @product.Price.ToString("F2"))
+                                        </option>
+                                    }
+                                </select>
+                                <span asp-validation-for="ProductId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Quantity" class="form-label">Quantity</label>
+                                <input asp-for="Quantity" class="form-control" id="quantityInput" type="number" min="1" value="1" />
+                                <span asp-validation-for="Quantity" class="text-danger"></span>
+                                <div class="form-text" id="stockInfo"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label">Unit Price</label>
+                                <input type="text" class="form-control" id="unitPriceDisplay" value="R 0.00" readonly />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Status" class="form-label">Order Status</label>
+                        <select asp-for="Status" class="form-select">
+                            <option value="Submitted">Submitted</option>
+                            <option value="Processing">Processing</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <span asp-validation-for="Status" class="text-danger"></span>
+                    </div>
+
+                    <div class="card bg-light mb-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-calculator"></i> Order Summary
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Unit Price:</strong> R <span id="unitPrice">0.00</span></p>
+                                    <p><strong>Quantity:</strong> <span id="displayQuantity">1</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Total Price:</strong> R <span id="totalPrice">0.00</span></p>
+                                    <p><strong>Product:</strong> <span id="productName">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitButton">
+                            <i class="fas fa-save"></i> Create Order
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const productSelect = document.getElementById('productSelect');
+            const quantityInput = document.getElementById('quantityInput');
+            const unitPriceSpan = document.getElementById('unitPrice');
+            const displayQuantitySpan = document.getElementById('displayQuantity');
+            const totalPriceSpan = document.getElementById('totalPrice');
+            const productNameSpan = document.getElementById('productName');
+            const unitPriceDisplay = document.getElementById('unitPriceDisplay');
+            const stockInfo = document.getElementById('stockInfo');
+            const submitButton = document.getElementById('submitButton');
+
+            function updateOrderSummary() {
+                const selectedOption = productSelect.options[productSelect.selectedIndex];
+                const quantity = parseInt(quantityInput.value) || 1;
+                const price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+                const productText = selectedOption.textContent.split(' (R')[0]; // Get product name without price
+
+                unitPriceSpan.textContent = price.toFixed(2);
+                unitPriceDisplay.value = 'R ' + price.toFixed(2);
+                displayQuantitySpan.textContent = quantity;
+                totalPriceSpan.textContent = (price * quantity).toFixed(2);
+                productNameSpan.textContent = productText;
+
+                // Enable/disable submit button based on selection
+                if (productSelect.value && quantity > 0) {
+                    submitButton.disabled = false;
+                    stockInfo.innerHTML = '<span class="text-success">Ready to create order</span>';
+                } else {
+                    submitButton.disabled = true;
+                    if (!productSelect.value) {
+                        stockInfo.innerHTML = '<span class="text-warning">Please select a product</span>';
+                    } else if (quantity <= 0) {
+                        stockInfo.innerHTML = '<span class="text-warning">Quantity must be at least 1</span>';
+                    }
+                }
+            }
+
+            function updateTotalPrice() {
+                const price = parseFloat(unitPriceSpan.textContent) || 0;
+                const quantity = parseInt(quantityInput.value) || 1;
+                totalPriceSpan.textContent = (price * quantity).toFixed(2);
+                updateOrderSummary();
+            }
+
+            // Event listeners
+            productSelect.addEventListener('change', updateOrderSummary);
+            quantityInput.addEventListener('input', updateTotalPrice);
+
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.querySelector('input[type="date"]');
+            if (dateInput) {
+                dateInput.value = today;
+            }
+
+            // Initial update
+            updateOrderSummary();
+        });
+    </script>
+}

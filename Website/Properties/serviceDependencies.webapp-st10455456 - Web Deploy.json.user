@@ -1,0 +1,25 @@
+{
+  "dependencies": {
+    "storage1": {
+      "restored": true,
+      "restoreTime": "2025-11-14T13:26:49.6242755Z"
+    }
+  },
+  "parameters": {
+    "storage1.serviceConnectorResourceGroupName": {
+      "Name": "storage1.serviceConnectorResourceGroupName",
+      "Type": "resourceGroup",
+      "Value": "cloud"
+    },
+    "storage1.resourceGroupName": {
+      "Name": "storage1.resourceGroupName",
+      "Type": "resourceGroup",
+      "Value": "cloud"
+    },
+    "storage1.subscriptionId": {
+      "Name": "storage1.subscriptionId",
+      "Type": "subscription",
+      "Value": "0da7ba8d-b042-4e07-ab0a-563510ae5ce5"
+    }
+  }
+}

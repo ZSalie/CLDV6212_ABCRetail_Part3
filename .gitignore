@@ -1,0 +1,6 @@
+.vs/
+website/obj/
+website/bin/
+Functions/obj/
+Functions/bin/
+appsettings.json
